@@ -2,8 +2,7 @@
 
 #include "wx/wx.h"
 
-class mmBase : public wxFrame
-{
+class mmBase : public wxFrame {
 public:
 	mmBase();
 };
