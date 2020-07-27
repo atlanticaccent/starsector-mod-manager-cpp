@@ -10,7 +10,7 @@ mmBase::mmBase() : wxFrame(nullptr, wxID_ANY, "Starsector Mod Manager", wxDefaul
 
     m_ctrl->AppendToggleColumn(wxT("Enabled"));
     m_ctrl->AppendTextColumn(wxT("Mod Name"));
-    m_ctrl->AppendTextColumn(wxT("Version Number"));
+    m_ctrl->AppendTextColumn(wxT("Version #"));
     m_ctrl->AppendTextColumn(wxT("Last Updated"));
 
     m_ctrl->Enable();
@@ -32,11 +32,30 @@ mmBase::mmBase() : wxFrame(nullptr, wxID_ANY, "Starsector Mod Manager", wxDefaul
     mainSizer->Add(bottomSizer, 1, wxRESERVE_SPACE_EVEN_IF_HIDDEN);
 
     mainPane->SetSizer(mainSizer);
+
+    m_pMenuBar = new wxMenuBar();
+
+    m_pFileMenu = new wxMenu();
+    m_pFileMenu->Append(MM_SETTINGS, _T("&Settings"));
+    m_pFileMenu->AppendSeparator();
+    m_pFileMenu->Append(wxID_EXIT, _T("&Quit"));
+    m_pMenuBar->Append(m_pFileMenu, _T("&File"));
+    
+    SetMenuBar(m_pMenuBar);
+
+    Bind(wxEVT_MENU, [=](wxCommandEvent&) { Close(true); }, wxID_EXIT);
 }
 
 BEGIN_EVENT_TABLE(mmBase, wxFrame)
+    EVT_MENU(MM_SETTINGS, mmBase::onSettings)
+
     EVT_DATAVIEW_ITEM_VALUE_CHANGED(MM_DATALISTCTRL, mmBase::onListItemDataChange)
 END_EVENT_TABLE()
+
+void mmBase::onSettings(wxCommandEvent& event) {
+    wxWindowPtr<wxDialog> dlg(new wxMessageDialog(this, "Settings"));
+    dlg->ShowModal();
+}
 
 void mmBase::onListContextMenuDisplay(wxCommandEvent& event) {
 }

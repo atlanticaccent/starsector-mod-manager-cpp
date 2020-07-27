@@ -11,6 +11,8 @@ class mmBase : public wxFrame {
 public:
 	mmBase();
 
+	void onSettings(wxCommandEvent& event);
+
 	void onListContextMenuDisplay(wxCommandEvent& event);
 	void onAddModClick(wxCommandEvent& event);
 	void onRemoveModClick(wxCommandEvent& event);
@@ -22,11 +24,14 @@ protected:
 
 private:
 	wxDataViewListCtrl* m_ctrl;
+	wxMenuBar* m_pMenuBar;
+	wxMenu* m_pFileMenu;
 };
 
 enum {
 	MM_ADD = wxID_HIGHEST + 1,
 	MM_REMOVE = wxID_HIGHEST + 2,
 	MM_TOGGLEALL = wxID_HIGHEST + 3,
-	MM_DATALISTCTRL = wxID_HIGHEST + 4
+	MM_DATALISTCTRL = wxID_HIGHEST + 4,
+	MM_SETTINGS = wxID_HIGHEST + 5
 };
