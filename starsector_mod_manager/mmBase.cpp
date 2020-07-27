@@ -6,7 +6,7 @@ mmBase::mmBase() : wxFrame(nullptr, wxID_ANY, "Starsector Mod Manager", wxDefaul
     wxBoxSizer* topSizer = new wxBoxSizer(wxHORIZONTAL);
     wxBoxSizer* bottomSizer = new wxBoxSizer(wxHORIZONTAL);
 
-    m_ctrl = new wxDataViewListCtrl(mainPane, MM_LISTITEMDATACHANGE);
+    m_ctrl = new wxDataViewListCtrl(mainPane, MM_DATALISTCTRL);
 
     m_ctrl->AppendToggleColumn(wxT("Enabled"));
     m_ctrl->AppendTextColumn(wxT("Mod Name"));
@@ -35,7 +35,7 @@ mmBase::mmBase() : wxFrame(nullptr, wxID_ANY, "Starsector Mod Manager", wxDefaul
 }
 
 BEGIN_EVENT_TABLE(mmBase, wxFrame)
-    EVT_DATAVIEW_ITEM_VALUE_CHANGED(MM_LISTITEMDATACHANGE, mmBase::onListItemDataChange)
+    EVT_DATAVIEW_ITEM_VALUE_CHANGED(MM_DATALISTCTRL, mmBase::onListItemDataChange)
 END_EVENT_TABLE()
 
 void mmBase::onListContextMenuDisplay(wxCommandEvent& event) {
