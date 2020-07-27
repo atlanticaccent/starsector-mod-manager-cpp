@@ -1,6 +1,6 @@
 #include "mmBase.h"
 
-mmBase::mmBase() : wxFrame(nullptr, wxID_ANY, "Starsector Mod Manager") {
+mmBase::mmBase() : wxFrame(nullptr, wxID_ANY, "Starsector Mod Manager", wxDefaultPosition, wxSize(800, 600)) {
     wxPanel* mainPane = new wxPanel(this);
     wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer* topSizer = new wxBoxSizer(wxHORIZONTAL);
