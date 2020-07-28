@@ -21,12 +21,18 @@
     <ClCompile Include="mmBase.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="mmSettings.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="mmApp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="mmBase.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mmSettings.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

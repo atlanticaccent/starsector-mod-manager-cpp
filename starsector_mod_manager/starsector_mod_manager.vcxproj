@@ -21,10 +21,12 @@
   <ItemGroup>
     <ClCompile Include="mmApp.cpp" />
     <ClCompile Include="mmBase.cpp" />
+    <ClCompile Include="mmSettings.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="mmApp.h" />
     <ClInclude Include="mmBase.h" />
+    <ClInclude Include="mmSettings.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
