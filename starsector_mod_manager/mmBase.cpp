@@ -6,7 +6,7 @@ mmBase::mmBase() : wxFrame(nullptr, wxID_ANY, "Starsector Mod Manager", wxDefaul
     wxBoxSizer* topSizer = new wxBoxSizer(wxHORIZONTAL);
     wxBoxSizer* bottomSizer = new wxBoxSizer(wxHORIZONTAL);
 
-    m_ctrl = new wxDataViewListCtrl(mainPane, MM_DATALISTCTRL);
+    m_ctrl = new wxDataViewListCtrl(mainPane, MM_DATA_LIST_CTRL);
 
     m_ctrl->AppendToggleColumn(wxT("Enabled"));
     m_ctrl->AppendTextColumn(wxT("Mod Name"));
@@ -21,7 +21,7 @@ mmBase::mmBase() : wxFrame(nullptr, wxID_ANY, "Starsector Mod Manager", wxDefaul
 
     wxButton* add = new wxButton(mainPane, MM_ADD, "Add Mod +");
     wxButton* remove = new wxButton(mainPane, MM_REMOVE, "Remove Mod -");
-    wxButton* toggle = new wxButton(mainPane, MM_TOGGLEALL, "Toggle All");
+    wxButton* toggle = new wxButton(mainPane, MM_TOGGLE_ALL, "Toggle All");
 
     buttonSizer->Add(add, 0, wxEXPAND | wxBOTTOM | wxALIGN_TOP, 5);
     buttonSizer->Add(remove, 0, wxEXPAND | wxBOTTOM | wxALIGN_TOP, 5);
@@ -36,7 +36,7 @@ mmBase::mmBase() : wxFrame(nullptr, wxID_ANY, "Starsector Mod Manager", wxDefaul
     m_pMenuBar = new wxMenuBar();
 
     m_pFileMenu = new wxMenu();
-    m_pFileMenu->Append(MM_SETTINGS, _T("&Settings"));
+    m_pFileMenu->Append(MM_SETTINGS_MENU, _T("&Settings"));
     m_pFileMenu->AppendSeparator();
     m_pFileMenu->Append(wxID_EXIT, _T("&Quit"));
     m_pMenuBar->Append(m_pFileMenu, _T("&File"));
@@ -47,14 +47,14 @@ mmBase::mmBase() : wxFrame(nullptr, wxID_ANY, "Starsector Mod Manager", wxDefaul
 }
 
 BEGIN_EVENT_TABLE(mmBase, wxFrame)
-    EVT_MENU(MM_SETTINGS, mmBase::onSettings)
+    EVT_MENU(MM_SETTINGS_MENU, mmBase::onSettings)
 
-    EVT_DATAVIEW_ITEM_VALUE_CHANGED(MM_DATALISTCTRL, mmBase::onListItemDataChange)
+    EVT_DATAVIEW_ITEM_VALUE_CHANGED(MM_DATA_LIST_CTRL, mmBase::onListItemDataChange)
 END_EVENT_TABLE()
 
 void mmBase::onSettings(wxCommandEvent& event) {
-    wxWindowPtr<wxDialog> dlg(new wxMessageDialog(this, "Settings"));
-    dlg->ShowModal();
+    settings = new mmSettings(this);
+    settings->Show(true);
 }
 
 void mmBase::onListContextMenuDisplay(wxCommandEvent& event) {
