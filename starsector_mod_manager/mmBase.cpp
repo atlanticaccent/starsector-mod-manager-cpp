@@ -53,8 +53,7 @@ BEGIN_EVENT_TABLE(mmBase, wxFrame)
 END_EVENT_TABLE()
 
 void mmBase::onSettings(wxCommandEvent& event) {
-    settings = new mmSettings(this);
-    settings->Show(true);
+    (new mmSettings(this))->ShowModal();
 }
 
 void mmBase::onListContextMenuDisplay(wxCommandEvent& event) {

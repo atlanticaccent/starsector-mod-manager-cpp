@@ -7,7 +7,7 @@
 
 #define SETTINGS_ID wxID_HIGHEST + 100
 
-class mmSettings : public wxFrame {
+class mmSettings : public wxDialog {
 public:
 	mmSettings(wxWindow* parent);
 

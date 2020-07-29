@@ -1,6 +1,6 @@
 #include "mmSettings.h"
 
-mmSettings::mmSettings(wxWindow* parent) : wxFrame(parent, wxID_ANY, "Settings", wxDefaultPosition, wxSize(400, 300)) {
+mmSettings::mmSettings(wxWindow* parent) : wxDialog(parent, wxID_ANY, "Settings", wxDefaultPosition, wxSize(400, 300)) {
 	SetBackgroundColour(wxColour(*wxWHITE));
 	wxBoxSizer* mainSizer = new wxBoxSizer(wxHORIZONTAL);
 	wxBoxSizer* verticalSizer = new wxBoxSizer(wxVERTICAL);
@@ -23,12 +23,12 @@ mmSettings::mmSettings(wxWindow* parent) : wxFrame(parent, wxID_ANY, "Settings",
 	this->SetSizer(mainSizer);
 }
 
-BEGIN_EVENT_TABLE(mmSettings, wxFrame)
+BEGIN_EVENT_TABLE(mmSettings, wxDialog)
 	EVT_BUTTON(MM_INSTALL_DIR_BROWSE, mmSettings::onInstallDirectoryBrowse)
 END_EVENT_TABLE()
 
 void mmSettings::onInstallDirectoryBrowse(wxCommandEvent& event) {
-	wxDirDialog d = new wxDirDialog(this, "Choose a directory", "/", 0, wxDefaultPosition);
+	wxDirDialog d(this, "Choose a directory", "/", 0, wxDefaultPosition);
 
 	if (d.ShowModal() == wxID_OK) {
 		installDir->SetLabel(d.GetPath());

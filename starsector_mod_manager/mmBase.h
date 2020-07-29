@@ -31,8 +31,6 @@ private:
 	wxDataViewListCtrl* m_ctrl;
 	wxMenuBar* m_pMenuBar;
 	wxMenu* m_pFileMenu;
-
-	mmSettings* settings;
 };
 
 enum {
