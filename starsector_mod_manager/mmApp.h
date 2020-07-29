@@ -1,7 +1,7 @@
 #ifndef MM_APP
 #define MM_APP
 
-#include "wx/wx.h"
+#include <wx/wx.h>
 
 #include "mmBase.h"
 
