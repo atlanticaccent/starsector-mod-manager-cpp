@@ -12,9 +12,9 @@ class mmConfig : public json {
 public:
 	mmConfig();
 
-	~mmConfig();
-
 	bool initialise();
+
+	bool apply();
 };
 
 #endif // !MM_CONFIG
