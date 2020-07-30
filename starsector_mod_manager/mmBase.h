@@ -9,6 +9,7 @@
 #include <wx/datetime.h>
 
 #include "mmSettings.h"
+#include "mmConfig.h"
 
 #define BASE_ID wxID_HIGHEST
 
@@ -31,6 +32,8 @@ private:
 	wxDataViewListCtrl* m_ctrl;
 	wxMenuBar* m_pMenuBar;
 	wxMenu* m_pFileMenu;
+
+	mmConfig config;
 };
 
 enum {

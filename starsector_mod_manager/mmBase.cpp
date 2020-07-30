@@ -44,6 +44,9 @@ mmBase::mmBase() : wxFrame(nullptr, wxID_ANY, "Starsector Mod Manager", wxDefaul
     SetMenuBar(m_pMenuBar);
 
     Bind(wxEVT_MENU, [=](wxCommandEvent&) { Close(true); }, wxID_EXIT);
+
+    config = mmConfig();
+    config.initialise();
 }
 
 BEGIN_EVENT_TABLE(mmBase, wxFrame)
@@ -53,7 +56,7 @@ BEGIN_EVENT_TABLE(mmBase, wxFrame)
 END_EVENT_TABLE()
 
 void mmBase::onSettings(wxCommandEvent& event) {
-    (new mmSettings(this))->ShowModal();
+    (new mmSettings(this, config))->ShowModal();
 }
 
 void mmBase::onListContextMenuDisplay(wxCommandEvent& event) {
