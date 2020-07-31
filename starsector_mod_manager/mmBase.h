@@ -33,14 +33,18 @@ public:
 	void onRemoveModClick(wxCommandEvent& event);
 	void onToggleAllClick(wxCommandEvent& event);
 	void onListItemDataChange(wxDataViewEvent& event);
+	void onListRowSelectionChange(wxDataViewEvent& event);
 
 protected:
 	DECLARE_EVENT_TABLE()
 
 private:
+	wxPanel* mainPane;
+	wxBoxSizer* mainSizer;
 	wxDataViewListCtrl* m_ctrl;
 	wxMenuBar* m_pMenuBar;
 	wxMenu* m_pFileMenu;
+	wxStaticText* mod_description;
 
 	mmConfig config;
 };

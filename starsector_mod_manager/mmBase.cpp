@@ -1,10 +1,9 @@
 #include "mmBase.h"
 
 mmBase::mmBase() : wxFrame(nullptr, wxID_ANY, "Starsector Mod Manager", wxDefaultPosition, wxSize(800, 600)) {
-    wxPanel* mainPane = new wxPanel(this);
-    wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
+    mainPane = new wxPanel(this);
+    mainSizer = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer* topSizer = new wxBoxSizer(wxHORIZONTAL);
-    wxBoxSizer* bottomSizer = new wxBoxSizer(wxHORIZONTAL);
 
     m_ctrl = new wxDataViewListCtrl(mainPane, MM_DATA_LIST_CTRL);
 
@@ -29,9 +28,10 @@ mmBase::mmBase() : wxFrame(nullptr, wxID_ANY, "Starsector Mod Manager", wxDefaul
     buttonSizer->Add(remove, 0, wxEXPAND | wxBOTTOM | wxALIGN_TOP, 5);
     buttonSizer->Add(toggle, 0, wxEXPAND | wxBOTTOM | wxALIGN_TOP, 5);
     topSizer->Add(buttonSizer, 0, wxALL, 5);
-
     mainSizer->Add(topSizer, 2, wxEXPAND | wxBOTTOM, 5);
-    mainSizer->Add(bottomSizer, 1, wxRESERVE_SPACE_EVEN_IF_HIDDEN);
+
+    mod_description = new wxStaticText(mainPane, wxID_ANY, "", wxDefaultPosition, wxDefaultSize);
+    mainSizer->Add(mod_description, 1, wxLEFT | wxRIGHT | wxBOTTOM | wxEXPAND | wxRESERVE_SPACE_EVEN_IF_HIDDEN, 10);
 
     mainPane->SetSizer(mainSizer);
 
@@ -102,6 +102,7 @@ BEGIN_EVENT_TABLE(mmBase, wxFrame)
     EVT_MENU(MM_SETTINGS_MENU, mmBase::onSettings)
 
     EVT_DATAVIEW_ITEM_VALUE_CHANGED(MM_DATA_LIST_CTRL, mmBase::onListItemDataChange)
+    EVT_DATAVIEW_SELECTION_CHANGED(MM_DATA_LIST_CTRL, mmBase::onListRowSelectionChange)
 END_EVENT_TABLE()
 
 void mmBase::onSettings(wxCommandEvent& event) {
@@ -145,9 +146,16 @@ void mmBase::onListItemDataChange(wxDataViewEvent& event) {
             }
             enabled["enabledMods"].push_back(meta_data->first);
         }
-    } else {
-        if (already_active) enabled["enabledMods"].erase(std::find(enabled["enabledMods"].begin(), enabled["enabledMods"].end(), meta_data->first));
+    } else if (already_active) {
+        enabled["enabledMods"].erase(std::find(enabled["enabledMods"].begin(), enabled["enabledMods"].end(), meta_data->first));
     }
 
     std::ofstream(enabled_mods_file) << std::setw(4) << enabled;
+}
+
+void mmBase::onListRowSelectionChange(wxDataViewEvent& event) {
+    auto meta_data = (std::pair<std::string, std::string>*) m_ctrl->GetItemData(event.GetItem());
+
+    mod_description->SetLabel(meta_data->second);
+    mainSizer->Layout();
 }
