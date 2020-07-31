@@ -1,6 +1,10 @@
 #ifndef MM_BASE
 #define MM_BASE
 
+#include <sstream>
+#include <regex>
+#include <memory>
+
 #include <wx/wx.h>
 #include <wx/dataview.h>
 #include <wx/button.h>
@@ -12,10 +16,15 @@
 #include "mmConfig.h"
 
 #define BASE_ID wxID_HIGHEST
+#define CURRENT_SS_VERSION "0.9.1a"
+
+namespace fs = std::filesystem;
 
 class mmBase : public wxFrame {
 public:
 	mmBase();
+
+	bool getAllMods();
 
 	void onSettings(wxCommandEvent& event);
 
