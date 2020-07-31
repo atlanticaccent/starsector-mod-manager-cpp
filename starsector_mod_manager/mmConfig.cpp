@@ -4,7 +4,7 @@ mmConfig::mmConfig() : json() {
 }
 
 bool mmConfig::initialise() {
-    if (std::filesystem::exists("config.json")) {
+    if (fs::exists("config.json")) {
         std::ifstream input("config.json", std::fstream::in);
 
         input >> *this;

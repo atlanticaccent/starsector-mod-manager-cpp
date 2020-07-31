@@ -50,7 +50,7 @@ void mmSettings::onChange(wxCommandEvent& event) {
 }
 
 void mmSettings::onApply(wxCommandEvent& event) {
-	if (std::filesystem::exists(installDir->GetValue().ToStdString())) {
+	if (fs::exists(installDir->GetValue().ToStdString())) {
 		config["install_dir"] = installDir->GetValue();
 
 		config.apply();
@@ -61,6 +61,5 @@ void mmSettings::onApply(wxCommandEvent& event) {
 		error.ShowModal();
 	}
 
-	//set apply inactive
 	event.Skip();
 }

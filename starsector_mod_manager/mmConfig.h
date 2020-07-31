@@ -7,6 +7,7 @@
 #include "json.hpp"
 
 using namespace nlohmann;
+namespace fs = std::filesystem;
 
 class mmConfig : public json {
 public:
