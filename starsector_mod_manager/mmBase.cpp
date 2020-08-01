@@ -145,6 +145,22 @@ void mmBase::onAddModFolder(wxCommandEvent& event) {
                 //#endif
                 fs::copy(mod_dir, fs::path(config["install_dir"].get<std::string>()) / "mods" / mod_dir.filename(), fs::copy_options::recursive);
                 fs::remove_all(mod_dir);
+
+                getAllMods();
+
+                json info;
+                int i = 0;
+                for (; i < m_ctrl->GetItemCount(); i++) {
+                    info = json::parse(std::ifstream(fs::path(config["install_dir"].get<std::string>()) / "mods" / mod_dir.filename() / "mod_info.json"));
+                    auto item_id = ((std::pair<std::string, std::string>*) m_ctrl->GetItemData(m_ctrl->RowToItem(i)))->first;
+                    if (item_id == info["id"]) break;
+                }
+
+                wxMessageDialog check(this, "Activate '" + info["name"].get<std::string>() + "'?", wxMessageBoxCaptionStr, wxCENTRE | wxCANCEL | wxYES_NO);
+                if (check.ShowModal() == wxID_YES) {
+                    m_ctrl->SetToggleValue(true, i, 0);
+                    return;
+                }
             } catch (std::filesystem::filesystem_error e) {
                 wxMessageDialog(this, e.what()).ShowModal();
             }
