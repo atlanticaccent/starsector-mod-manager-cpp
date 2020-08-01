@@ -21,8 +21,10 @@ mmBase::mmBase() : wxFrame(nullptr, wxID_ANY, "Starsector Mod Manager", wxDefaul
     wxBoxSizer* buttonSizer = new wxBoxSizer(wxVERTICAL);
 
     wxButton* add = new wxButton(mainPane, MM_ADD, "Add Mod +");
-    wxButton* remove = new wxButton(mainPane, MM_REMOVE, "Remove Mod -");
+    remove = new wxButton(mainPane, MM_REMOVE, "Remove Mod -");
     wxButton* toggle = new wxButton(mainPane, MM_TOGGLE_ALL, "Toggle All");
+
+    remove->Enable(false);
 
     buttonSizer->Add(add, 0, wxEXPAND | wxBOTTOM | wxALIGN_TOP, 5);
     buttonSizer->Add(remove, 0, wxEXPAND | wxBOTTOM | wxALIGN_TOP, 5);
@@ -63,8 +65,7 @@ bool mmBase::getAllMods() {
 
     if (config["install_dir"] == "" || !fs::is_directory(install_dir) || !fs::is_directory(mods_dir)) return false;
 
-    json enabled;
-    std::ifstream(mods_dir / "enabled_mods.json") >> enabled;
+    json enabled = json::parse(std::ifstream(mods_dir / "enabled_mods.json"));
 
     bool parse_error = false;
     for (auto& mod : fs::directory_iterator(mods_dir)) {
@@ -87,7 +88,11 @@ bool mmBase::getAllMods() {
                 values.push_back(mod_info.value("author", "N/A"));
                 values.push_back(mod_info.value("gameVersion", "N/A"));
 
-                auto meta_data = new std::pair<std::string, std::string>(mod_info["id"], mod_info.value("description", "N/A"));
+                auto meta_data = new std::tuple<std::string, std::string, fs::path>(
+                    mod_info["id"],
+                    mod_info.value("description", "N/A"),
+                    mod.path()
+                );
 
                 m_ctrl->AppendItem(values, (wxUIntPtr) meta_data);
             } catch (nlohmann::detail::type_error e) {
@@ -107,6 +112,8 @@ BEGIN_EVENT_TABLE(mmBase, wxFrame)
 
     EVT_BUTTON(MM_ADD, mmBase::onAddModClick)
     EVT_MENU(MM_ADD_FOLDER, mmBase::onAddModFolder)
+
+    EVT_BUTTON(MM_REMOVE, mmBase::onRemoveModClick)
 
     EVT_DATAVIEW_ITEM_VALUE_CHANGED(MM_DATA_LIST_CTRL, mmBase::onListItemDataChange)
     EVT_DATAVIEW_SELECTION_CHANGED(MM_DATA_LIST_CTRL, mmBase::onListRowSelectionChange)
@@ -136,7 +143,6 @@ void mmBase::onAddModFolder(wxCommandEvent& event) {
     if (d.ShowModal() == wxID_OK) {
         fs::path mod_dir(d.GetPath().ToStdString());
         if (fs::exists(mod_dir / "mod_info.json")) {
-            bool a;
             try {
                 //#ifdef __linux__
                 //fs::rename(mod_dir, fs::path(config["install_dir"].get<std::string>()) / "mods" / mod_dir.filename());
@@ -152,7 +158,7 @@ void mmBase::onAddModFolder(wxCommandEvent& event) {
                 int i = 0;
                 for (; i < m_ctrl->GetItemCount(); i++) {
                     info = json::parse(std::ifstream(fs::path(config["install_dir"].get<std::string>()) / "mods" / mod_dir.filename() / "mod_info.json"));
-                    auto item_id = ((std::pair<std::string, std::string>*) m_ctrl->GetItemData(m_ctrl->RowToItem(i)))->first;
+                    auto item_id = std::get<0>(*(std::tuple<std::string, std::string, fs::path>*) m_ctrl->GetItemData(m_ctrl->RowToItem(i)));
                     if (item_id == info["id"]) break;
                 }
 
@@ -169,6 +175,27 @@ void mmBase::onAddModFolder(wxCommandEvent& event) {
 }
 
 void mmBase::onRemoveModClick(wxCommandEvent& event) {
+    int i = m_ctrl->GetSelectedRow();
+    if (i == wxNOT_FOUND) return;
+
+    auto name = m_ctrl->GetTextValue(i, 1);
+    wxMessageDialog check(this, "Are you sure you want to delete '" + name + "'? \nThis cannot be undone!", wxMessageBoxCaptionStr, wxCENTRE | wxCANCEL | wxYES_NO | wxNO_DEFAULT);
+    if (check.ShowModal() == wxID_YES) {
+        auto meta_data = *(std::tuple<std::string, std::string, fs::path>*) m_ctrl->GetItemData(m_ctrl->RowToItem(m_ctrl->GetSelectedRow()));
+        auto mod_dir = std::get<2>(meta_data);
+        fs::remove_all(mod_dir);
+
+        json enabled = json::parse(std::ifstream(fs::path(config["install_dir"].get<std::string>()) / "mods" / "enabled_mods.json"));
+        auto exists_iter = std::find(enabled["enabledMods"].begin(), enabled["enabledMods"].end(), std::get<0>(meta_data));
+        if (m_ctrl->GetToggleValue(i, 0)) {
+            if (exists_iter != enabled["enabledMods"].end()) {
+                enabled["enabledMods"].erase(exists_iter);
+                std::ofstream(fs::path(config["install_dir"].get<std::string>()) / "mods" / "enabled_mods.json") << std::setw(4) << enabled;
+            }
+        }
+        m_ctrl->DeleteItem(i);
+        getAllMods();
+    }
 }
 
 void mmBase::onToggleAllClick(wxCommandEvent& event) {
@@ -180,31 +207,32 @@ void mmBase::onListItemDataChange(wxDataViewEvent& event) {
     fs::path enabled_mods_file = fs::path(config["install_dir"].get<std::string>()) / "mods" / "enabled_mods.json";
     json enabled;
     std::ifstream(enabled_mods_file) >> enabled;
-    auto enabled_mods = enabled["enabledMods"];
-    auto meta_data = (std::pair<std::string, std::string>*) m_ctrl->GetItemData(event.GetItem());
+    auto meta_data = *(std::tuple<std::string, std::string, fs::path>*) m_ctrl->GetItemData(event.GetItem());
 
-    bool already_active = std::find(enabled_mods.begin(), enabled_mods.end(), meta_data->first) != enabled_mods.end();
+    auto exists_iter = std::find(enabled["enabledMods"].begin(), enabled["enabledMods"].end(), std::get<0>(meta_data));
     if (m_ctrl->GetToggleValue(i, 0)) {
-        if (!already_active) {
-            if (m_ctrl->GetTextValue(i, 2) != CURRENT_SS_VERSION) {
-                wxMessageDialog check(this, "This mod is for a different version of Starsector. \nContinue?", wxMessageBoxCaptionStr, wxCENTRE | wxCANCEL | wxYES_NO | wxNO_DEFAULT);
+        if (exists_iter == enabled["enabledMods"].end()) {
+            if (m_ctrl->GetTextValue(i, 4) != CURRENT_SS_VERSION) {
+                wxMessageDialog check(this, "This mod may be for a different version of Starsector. \nContinue?", wxMessageBoxCaptionStr, wxCENTRE | wxCANCEL | wxYES_NO | wxNO_DEFAULT);
                 if (check.ShowModal() != wxID_YES) {
                     m_ctrl->SetToggleValue(false, i, 0);
                     return;
                 }
             }
-            enabled["enabledMods"].push_back(meta_data->first);
+            enabled["enabledMods"].push_back(std::get<0>(meta_data));
         }
-    } else if (already_active) {
-        enabled["enabledMods"].erase(std::find(enabled["enabledMods"].begin(), enabled["enabledMods"].end(), meta_data->first));
+    } else if (exists_iter != enabled["enabledMods"].end()) {
+        enabled["enabledMods"].erase(exists_iter);
     }
 
     std::ofstream(enabled_mods_file) << std::setw(4) << enabled;
 }
 
 void mmBase::onListRowSelectionChange(wxDataViewEvent& event) {
-    auto meta_data = (std::pair<std::string, std::string>*) m_ctrl->GetItemData(event.GetItem());
+    remove->Enable(true);
 
-    mod_description->SetLabel(meta_data->second);
+    auto meta_data = *(std::tuple<std::string, std::string, fs::path>*) m_ctrl->GetItemData(event.GetItem());
+
+    mod_description->SetLabel(std::get<1>(meta_data));
     mainSizer->Layout();
 }

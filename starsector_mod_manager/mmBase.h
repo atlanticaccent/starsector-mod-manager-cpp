@@ -43,6 +43,7 @@ private:
 	wxPanel* mainPane;
 	wxBoxSizer* mainSizer;
 	wxDataViewListCtrl* m_ctrl;
+	wxButton* remove;
 	wxMenuBar* m_pMenuBar;
 	wxMenu* m_pFileMenu;
 	wxMenu* addMenu;
