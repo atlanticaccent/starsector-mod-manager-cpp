@@ -5,7 +5,7 @@ mmBase::mmBase() : wxFrame(nullptr, wxID_ANY, "Starsector Mod Manager", wxDefaul
     mainSizer = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer* topSizer = new wxBoxSizer(wxHORIZONTAL);
 
-    m_ctrl = new wxDataViewListCtrl(mainPane, MM_DATA_LIST_CTRL);
+    m_ctrl = new wxDataViewListCtrl(mainPane, MM_DATA_LIST_CTRL, wxDefaultPosition, wxDefaultSize, wxDV_ROW_LINES);
 
     m_ctrl->AppendToggleColumn(wxT("Enabled"));
     m_ctrl->AppendTextColumn(wxT("Mod Name"));
@@ -22,13 +22,13 @@ mmBase::mmBase() : wxFrame(nullptr, wxID_ANY, "Starsector Mod Manager", wxDefaul
 
     wxButton* add = new wxButton(mainPane, MM_ADD, "Add Mod +");
     remove = new wxButton(mainPane, MM_REMOVE, "Remove Mod -");
-    wxButton* toggle = new wxButton(mainPane, MM_TOGGLE_ALL, "Toggle All");
+    //wxButton* toggle = new wxButton(mainPane, MM_TOGGLE_ALL, "Toggle All");
 
     remove->Enable(false);
 
     buttonSizer->Add(add, 0, wxEXPAND | wxBOTTOM | wxALIGN_TOP, 5);
     buttonSizer->Add(remove, 0, wxEXPAND | wxBOTTOM | wxALIGN_TOP, 5);
-    buttonSizer->Add(toggle, 0, wxEXPAND | wxBOTTOM | wxALIGN_TOP, 5);
+    //buttonSizer->Add(toggle, 0, wxEXPAND | wxBOTTOM | wxALIGN_TOP, 5);
     topSizer->Add(buttonSizer, 0, wxALL, 5);
     mainSizer->Add(topSizer, 2, wxEXPAND | wxBOTTOM, 5);
 
