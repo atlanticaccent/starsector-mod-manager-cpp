@@ -45,6 +45,10 @@ mmBase::mmBase() : wxFrame(nullptr, wxID_ANY, "Starsector Mod Manager", wxDefaul
     
     SetMenuBar(m_pMenuBar);
 
+    addMenu = new wxMenu();
+    addMenu->Append(MM_ADD_FOLDER, "From Folder");
+    addMenu->Append(MM_ADD_FOLDER, "From Archive");
+
     Bind(wxEVT_MENU, [=](wxCommandEvent&) { Close(true); }, wxID_EXIT);
 
     config = mmConfig();
@@ -55,12 +59,12 @@ mmBase::mmBase() : wxFrame(nullptr, wxID_ANY, "Starsector Mod Manager", wxDefaul
 
 bool mmBase::getAllMods() {
     fs::path install_dir(config["install_dir"].get<std::string>());
-    fs::path mods_dir = fs::path(install_dir) / "mods";
+    fs::path mods_dir = install_dir / "mods";
 
     if (config["install_dir"] == "" || !fs::is_directory(install_dir) || !fs::is_directory(mods_dir)) return false;
 
     json enabled;
-    std::ifstream(fs::path(mods_dir) / "enabled_mods.json") >> enabled;
+    std::ifstream(mods_dir / "enabled_mods.json") >> enabled;
 
     bool parse_error = false;
     for (auto& mod : fs::directory_iterator(mods_dir)) {
@@ -101,6 +105,9 @@ bool mmBase::getAllMods() {
 BEGIN_EVENT_TABLE(mmBase, wxFrame)
     EVT_MENU(MM_SETTINGS_MENU, mmBase::onSettings)
 
+    EVT_BUTTON(MM_ADD, mmBase::onAddModClick)
+    EVT_MENU(MM_ADD_FOLDER, mmBase::onAddModFolder)
+
     EVT_DATAVIEW_ITEM_VALUE_CHANGED(MM_DATA_LIST_CTRL, mmBase::onListItemDataChange)
     EVT_DATAVIEW_SELECTION_CHANGED(MM_DATA_LIST_CTRL, mmBase::onListRowSelectionChange)
 END_EVENT_TABLE()
@@ -108,7 +115,7 @@ END_EVENT_TABLE()
 void mmBase::onSettings(wxCommandEvent& event) {
     wxWindowPtr<mmSettings> settings(new mmSettings(this, config));
 
-    settings->ShowWindowModalThenDo([this, settings](int retcode) {
+    settings->ShowWindowModalThenDo([this, settings](int _) {
         getAllMods();
     });
 }
@@ -117,6 +124,32 @@ void mmBase::onListContextMenuDisplay(wxCommandEvent& event) {
 }
 
 void mmBase::onAddModClick(wxCommandEvent& event) {
+    auto button = (wxButton*) event.GetEventObject();
+    auto bottomLeftCoord = button->GetRect().GetBottomLeft();
+
+    this->PopupMenu(addMenu, bottomLeftCoord);
+}
+
+void mmBase::onAddModFolder(wxCommandEvent& event) {
+    wxDirDialog d(this, "Choose a directory", "/", 0, wxDefaultPosition);
+
+    if (d.ShowModal() == wxID_OK) {
+        fs::path mod_dir(d.GetPath().ToStdString());
+        if (fs::exists(mod_dir / "mod_info.json")) {
+            bool a;
+            try {
+                //#ifdef __linux__
+                //fs::rename(mod_dir, fs::path(config["install_dir"].get<std::string>()) / "mods" / mod_dir.filename());
+                //#elif _WIN32
+                //a = MoveFile(mod_dir.c_str(), (fs::path(config["install_dir"].get<std::string>()) / "mods" / mod_dir.filename()).c_str());
+                //#endif
+                fs::copy(mod_dir, fs::path(config["install_dir"].get<std::string>()) / "mods" / mod_dir.filename(), fs::copy_options::recursive);
+                fs::remove_all(mod_dir);
+            } catch (std::filesystem::filesystem_error e) {
+                wxMessageDialog(this, e.what()).ShowModal();
+            }
+        } else wxMessageDialog(this, "Could not find 'mod_info.json' in the top level of the folder. \nMaybe check its subdirectories?").ShowModal();
+    }
 }
 
 void mmBase::onRemoveModClick(wxCommandEvent& event) {
