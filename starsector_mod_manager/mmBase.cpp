@@ -5,7 +5,7 @@ mmBase::mmBase() : wxFrame(nullptr, wxID_ANY, "Starsector Mod Manager", wxDefaul
     mainSizer = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer* topSizer = new wxBoxSizer(wxHORIZONTAL);
 
-    m_ctrl = new wxDataViewListCtrl(mainPane, MM_DATA_LIST_CTRL, wxDefaultPosition, wxDefaultSize, wxDV_ROW_LINES);
+    m_ctrl = new wxDataViewListCtrl(mainPane, MM_DATA_LIST_CTRL);
 
     m_ctrl->AppendToggleColumn(wxT("Enabled"));
     m_ctrl->AppendTextColumn(wxT("Mod Name"));
