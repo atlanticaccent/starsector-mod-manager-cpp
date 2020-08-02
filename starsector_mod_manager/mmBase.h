@@ -28,12 +28,10 @@ public:
 	bool getAllMods();
 
 	void onSettings(wxCommandEvent& event);
-
 	void onListContextMenuDisplay(wxCommandEvent& event);
 	void onAddModClick(wxCommandEvent& event);
 	void onAddModFolder(wxCommandEvent& event);
 	void onRemoveModClick(wxCommandEvent& event);
-	void onToggleAllClick(wxCommandEvent& event);
 	void onListItemDataChange(wxDataViewEvent& event);
 	void onListRowSelectionChange(wxDataViewEvent& event);
 

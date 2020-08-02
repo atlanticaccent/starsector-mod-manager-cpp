@@ -200,9 +200,6 @@ void mmBase::onRemoveModClick(wxCommandEvent& event) {
     }
 }
 
-void mmBase::onToggleAllClick(wxCommandEvent& event) {
-}
-
 void mmBase::onListItemDataChange(wxDataViewEvent& event) {
     int i = m_ctrl->ItemToRow(event.GetItem());
 
