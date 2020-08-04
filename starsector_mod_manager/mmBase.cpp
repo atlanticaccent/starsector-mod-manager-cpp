@@ -120,21 +120,19 @@ bool mmBase::decompressArchiveTo(fs::path archive, fs::path targetDir) {
         // look for a archive handler, e.g. for '.zip' or '.tar'
         const wxArchiveClassFactory* acf = wxArchiveClassFactory::Find(archive.string(), wxSTREAM_FILEEXT);
         if (acf) {
+            fs::path mod_config_path;
             wxArchiveInputStream* arc = acf->NewStream(in);
             std::unique_ptr<wxArchiveEntry> entry;
             // list the contents of the archive
             while ((entry.reset(arc->GetNextEntry())), entry.get() != NULL) {
                 auto fname = targetDir / entry->GetName().ToStdString();
 
+                if (fname.filename().string() == "mod_info.json") mod_config_path = fname;
+
                 if (entry->IsDir()) {
-                    if (!fs::exists(fname)) {
-                        std::error_code ec;
-                        fs::create_directory(fname, ec);
-                        if (ec.value() != 0) {
-                            wxLogError(_(ec.message()));
-                        }
-                    }
                 } else if (arc->CanRead()) {
+                    fs::create_directories(fname.parent_path());
+
                     wxFileOutputStream fos(fname.string());
 
                     if (fos.IsOk()) arc->Read(fos);
@@ -143,10 +141,28 @@ bool mmBase::decompressArchiveTo(fs::path archive, fs::path targetDir) {
                         return false;
                     }
                 } else {
-                    // Read 'zis' to access the 'upZe's' data.
                     wxLogError("Couldn't read the zip entry '%s'.", entry->GetName());
                     return false;
                 }
+            }
+
+            getAllMods();
+
+            mmConfig info(mod_config_path);
+            info.initialise();
+            std::string mod_name;
+            int i = 0;
+            for (; i < m_ctrl->GetItemCount(); i++) {
+                auto item_id = std::get<0>(*(std::tuple<std::string, std::string, fs::path>*) m_ctrl->GetItemData(m_ctrl->RowToItem(i)));
+                if (item_id == info["id"]) {
+                    mod_name = info["name"];
+                    break;
+                }
+            }
+
+            wxMessageDialog check(this, "Activate '" + mod_name + "'?", wxMessageBoxCaptionStr, wxCENTRE | wxCANCEL | wxYES_NO);
+            if (check.ShowModal() == wxID_YES) {
+                m_ctrl->SetToggleValue(true, i, 0);
             }
         } else {
             wxLogError("Can't handle '%s'", archive.string());
@@ -154,7 +170,8 @@ bool mmBase::decompressArchiveTo(fs::path archive, fs::path targetDir) {
         }
     }
 
-    getAllMods();
+    //getAllMods();
+
     return true;
 }
 
@@ -221,7 +238,6 @@ void mmBase::onAddModFolder(wxCommandEvent& event) {
                 wxMessageDialog check(this, "Activate '" + mod_name + "'?", wxMessageBoxCaptionStr, wxCENTRE | wxCANCEL | wxYES_NO);
                 if (check.ShowModal() == wxID_YES) {
                     m_ctrl->SetToggleValue(true, i, 0);
-                    return;
                 }
             } catch (std::filesystem::filesystem_error e) {
                 wxMessageDialog(this, e.what()).ShowModal();
@@ -232,13 +248,21 @@ void mmBase::onAddModFolder(wxCommandEvent& event) {
 
 void mmBase::onAddModArchive(wxCommandEvent& event) {
     wxFileDialog d(this, "Choose an archive");
+    d.SetWindowStyle(wxFD_MULTIPLE);
 
     if (d.ShowModal() == wxID_OK) {
-        auto archive = fs::path(d.GetPath().ToStdString());
-        decompressArchiveTo(
-            archive,
-            fs::path(config["install_dir"].get<std::string>()) / "mods"
-        );
+        wxArrayString paths;
+        d.GetPaths(paths);
+
+        for (auto path : paths) {
+
+
+            auto archive = fs::path(path.ToStdString());
+            decompressArchiveTo(
+                archive,
+                fs::path(config["install_dir"].get<std::string>()) / "mods"
+            );
+        }
     }
 }
 
