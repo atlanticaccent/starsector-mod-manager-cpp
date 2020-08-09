@@ -12,6 +12,8 @@
 #include <wx/dialog.h>
 #include <wx/windowptr.h>
 #include <wx/datetime.h>
+#include <wx/wfstream.h>
+#include <wx/archive.h>
 
 #include "mmSettings.h"
 #include "mmConfig.h"
@@ -26,14 +28,14 @@ public:
 	mmBase();
 
 	bool getAllMods();
+	bool decompressArchiveTo(fs::path archive, fs::path targetDir);
 
 	void onSettings(wxCommandEvent& event);
-
 	void onListContextMenuDisplay(wxCommandEvent& event);
 	void onAddModClick(wxCommandEvent& event);
 	void onAddModFolder(wxCommandEvent& event);
+	void onAddModArchive(wxCommandEvent& event);
 	void onRemoveModClick(wxCommandEvent& event);
-	void onToggleAllClick(wxCommandEvent& event);
 	void onListItemDataChange(wxDataViewEvent& event);
 	void onListRowSelectionChange(wxDataViewEvent& event);
 

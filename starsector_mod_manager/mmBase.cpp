@@ -49,7 +49,7 @@ mmBase::mmBase() : wxFrame(nullptr, wxID_ANY, "Starsector Mod Manager", wxDefaul
 
     addMenu = new wxMenu();
     addMenu->Append(MM_ADD_FOLDER, "From Folder");
-    addMenu->Append(MM_ADD_FOLDER, "From Archive");
+    addMenu->Append(MM_ADD_ARCHIVE, "From Archive");
 
     Bind(wxEVT_MENU, [=](wxCommandEvent&) { Close(true); }, wxID_EXIT);
 
@@ -72,6 +72,8 @@ bool mmBase::getAllMods() {
     json enabled_default = json::parse("{\"enabledMods\":[]}");
     enabled.init_or_create("enabledMods", enabled_default);
 
+    m_ctrl->DeleteAllItems();
+
     bool parse_error = false;
     for (auto& mod : fs::directory_iterator(mods_dir)) {
         auto info = fs::path(mod.path()) / "mod_info.json";
@@ -93,14 +95,82 @@ bool mmBase::getAllMods() {
                 );
 
                 m_ctrl->AppendItem(values, (wxUIntPtr) meta_data);
-            } catch (nlohmann::detail::type_error e) {
+            } catch (detail::type_error& e) {
                 parse_error = true;
             }
         }
     }
     m_ctrl->GetColumn(1)->SetWidth(wxCOL_WIDTH_AUTOSIZE);
 
-    if (parse_error) wxMessageDialog(this, "There was an error parsing one or more mod_info.json files.").ShowModal();
+    if (parse_error) wxLogError("There was an error parsing one or more mod_info.json files.");
+
+    return true;
+}
+
+// Credit to https://wiki.wxwidgets.org/WxZipInputStream and https://docs.wxwidgets.org/trunk/overview_archive.html#overview_archive_generic
+// for the basis of this function.
+bool mmBase::decompressArchiveTo(fs::path archive, fs::path targetDir) {
+    wxInputStream* in = new wxFFileInputStream(archive.string());
+
+    if (in->IsOk()) {
+        // look for a filter handler, e.g. for '.gz'
+        const wxFilterClassFactory* fcf = wxFilterClassFactory::Find(archive.string(), wxSTREAM_FILEEXT);
+        // pop the extension, so if it was '.tar.gz' it is now just '.tar'
+        if (fcf) archive.replace_extension("");
+        // look for a archive handler, e.g. for '.zip' or '.tar'
+        const wxArchiveClassFactory* acf = wxArchiveClassFactory::Find(archive.string(), wxSTREAM_FILEEXT);
+        if (acf) {
+            fs::path mod_config_path;
+            wxArchiveInputStream* arc = acf->NewStream(in);
+            std::unique_ptr<wxArchiveEntry> entry;
+            // list the contents of the archive
+            while ((entry.reset(arc->GetNextEntry())), entry.get() != NULL) {
+                auto fname = targetDir / entry->GetName().ToStdString();
+
+                if (fname.filename().string() == "mod_info.json") mod_config_path = fname;
+
+                if (entry->IsDir()) {
+                } else if (arc->CanRead()) {
+                    fs::create_directories(fname.parent_path());
+
+                    wxFileOutputStream fos(fname.string());
+
+                    if (fos.IsOk()) arc->Read(fos);
+                    else {
+                        wxLogError("Couldn't create the file '%s'.", fname.string());
+                        return false;
+                    }
+                } else {
+                    wxLogError("Couldn't read the zip entry '%s'.", entry->GetName());
+                    return false;
+                }
+            }
+
+            getAllMods();
+
+            mmConfig info(mod_config_path);
+            info.initialise();
+            std::string mod_name;
+            int i = 0;
+            for (; i < m_ctrl->GetItemCount(); i++) {
+                auto item_id = std::get<0>(*(std::tuple<std::string, std::string, fs::path>*) m_ctrl->GetItemData(m_ctrl->RowToItem(i)));
+                if (item_id == info["id"]) {
+                    mod_name = info["name"];
+                    break;
+                }
+            }
+
+            wxMessageDialog check(this, "Activate '" + mod_name + "'?", wxMessageBoxCaptionStr, wxCENTRE | wxCANCEL | wxYES_NO);
+            if (check.ShowModal() == wxID_YES) {
+                m_ctrl->SetToggleValue(true, i, 0);
+            }
+        } else {
+            wxLogError("Can't handle '%s'", archive.string());
+            return false;
+        }
+    }
+
+    //getAllMods();
 
     return true;
 }
@@ -110,6 +180,7 @@ BEGIN_EVENT_TABLE(mmBase, wxFrame)
 
     EVT_BUTTON(MM_ADD, mmBase::onAddModClick)
     EVT_MENU(MM_ADD_FOLDER, mmBase::onAddModFolder)
+    EVT_MENU(MM_ADD_ARCHIVE, mmBase::onAddModArchive)
 
     EVT_BUTTON(MM_REMOVE, mmBase::onRemoveModClick)
 
@@ -136,7 +207,7 @@ void mmBase::onAddModClick(wxCommandEvent& event) {
 }
 
 void mmBase::onAddModFolder(wxCommandEvent& event) {
-    wxDirDialog d(this, "Choose a directory", "/", 0, wxDefaultPosition);
+    wxDirDialog d(this, "Choose a directory");
 
     if (d.ShowModal() == wxID_OK) {
         fs::path mod_dir(d.GetPath().ToStdString());
@@ -167,12 +238,31 @@ void mmBase::onAddModFolder(wxCommandEvent& event) {
                 wxMessageDialog check(this, "Activate '" + mod_name + "'?", wxMessageBoxCaptionStr, wxCENTRE | wxCANCEL | wxYES_NO);
                 if (check.ShowModal() == wxID_YES) {
                     m_ctrl->SetToggleValue(true, i, 0);
-                    return;
                 }
             } catch (std::filesystem::filesystem_error e) {
                 wxMessageDialog(this, e.what()).ShowModal();
             }
         } else wxMessageDialog(this, "Could not find 'mod_info.json' in the top level of the folder. \nMaybe check its subdirectories?").ShowModal();
+    }
+}
+
+void mmBase::onAddModArchive(wxCommandEvent& event) {
+    wxFileDialog d(this, "Choose an archive");
+    d.SetWindowStyle(wxFD_MULTIPLE);
+
+    if (d.ShowModal() == wxID_OK) {
+        wxArrayString paths;
+        d.GetPaths(paths);
+
+        for (auto path : paths) {
+
+
+            auto archive = fs::path(path.ToStdString());
+            decompressArchiveTo(
+                archive,
+                fs::path(config["install_dir"].get<std::string>()) / "mods"
+            );
+        }
     }
 }
 
@@ -198,9 +288,6 @@ void mmBase::onRemoveModClick(wxCommandEvent& event) {
         m_ctrl->DeleteItem(i);
         getAllMods();
     }
-}
-
-void mmBase::onToggleAllClick(wxCommandEvent& event) {
 }
 
 void mmBase::onListItemDataChange(wxDataViewEvent& event) {
