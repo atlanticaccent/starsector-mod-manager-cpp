@@ -3,6 +3,8 @@
 
 #include <fstream>
 #include <filesystem>
+#include <sstream>
+#include <regex>
 
 #include "json.hpp"
 
@@ -11,11 +13,15 @@ namespace fs = std::filesystem;
 
 class mmConfig : public json {
 public:
-	mmConfig();
+	mmConfig(fs::path);
 
 	bool initialise();
+	bool init_or_create(std::string key_check, json& create_with);
 
 	bool apply();
+
+private:
+	fs::path config_file;
 };
 
 #endif // !MM_CONFIG

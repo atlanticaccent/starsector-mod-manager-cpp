@@ -1,21 +1,31 @@
 #include "mmConfig.h"
 
-mmConfig::mmConfig() : json() {
+mmConfig::mmConfig(fs::path config_file_path) : json(), config_file(config_file_path) {
 }
 
 bool mmConfig::initialise() {
-    if (fs::exists("config.json")) {
-        std::ifstream input("config.json", std::fstream::in);
+    if (fs::exists(config_file)) {
+        std::ifstream input(config_file);
+        std::stringstream buffer;
+        buffer << input.rdbuf();
+        //std::string temp = buffer.str();
+        std::string temp = std::regex_replace(buffer.str(), std::regex("#.*\\\n"), "\n");
+        std::string config_string = std::regex_replace(temp, std::regex(",(\\s*[\\}\\]])"), "$1");
 
-        input >> *this;
+        update(json::parse(config_string));
 
-        return contains("starsector_mm");
+        return true;
+    } else return false;
+}
+
+bool mmConfig::init_or_create(std::string key_check, json& create_with) {
+    if (initialise()) {
+        return contains(key_check);
     } else {
-        std::ofstream output("config.json");
+        std::ofstream output(config_file);
 
         if (output.is_open()) {
-            emplace("starsector_mm", "Written by Iain Laird");
-            emplace("install_dir", "");
+            update(create_with);
 
             output << std::setw(2) << *this;
             
@@ -25,7 +35,7 @@ bool mmConfig::initialise() {
 }
 
 bool mmConfig::apply() {
-    std::ofstream output("config.json");
+    std::ofstream output(config_file);
 
     if (output.is_open()) {
         output << std::setw(2) << *this;

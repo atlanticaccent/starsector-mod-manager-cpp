@@ -4,6 +4,7 @@
 #include <sstream>
 #include <regex>
 #include <memory>
+#include <filesystem>
 
 #include <wx/wx.h>
 #include <wx/dataview.h>

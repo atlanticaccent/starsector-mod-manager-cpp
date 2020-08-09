@@ -1,6 +1,6 @@
 #include "mmBase.h"
 
-mmBase::mmBase() : wxFrame(nullptr, wxID_ANY, "Starsector Mod Manager", wxDefaultPosition, wxSize(800, 600)) {
+mmBase::mmBase() : wxFrame(nullptr, wxID_ANY, "Starsector Mod Manager", wxDefaultPosition, wxSize(800, 600)), config("config.json") {
     mainPane = new wxPanel(this);
     mainSizer = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer* topSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -53,8 +53,11 @@ mmBase::mmBase() : wxFrame(nullptr, wxID_ANY, "Starsector Mod Manager", wxDefaul
 
     Bind(wxEVT_MENU, [=](wxCommandEvent&) { Close(true); }, wxID_EXIT);
 
-    config = mmConfig();
-    config.initialise();
+    json default_config = {
+        {"starsector_mm", "Written by Iain Laird"},
+        {"install_dir", ""}
+    };
+    config.init_or_create("starsector_mm", default_config);
 
     getAllMods();
 }
@@ -63,24 +66,19 @@ bool mmBase::getAllMods() {
     fs::path install_dir(config["install_dir"].get<std::string>());
     fs::path mods_dir = install_dir / "mods";
 
-    if (config["install_dir"] == "" || !fs::is_directory(install_dir) || !fs::is_directory(mods_dir)) return false;
+    if (config["install_dir"] == "" || !fs::is_directory(mods_dir)) return false;
 
-    json enabled = json::parse(std::ifstream(mods_dir / "enabled_mods.json"));
+    mmConfig enabled(mods_dir / "enabled_mods.json");
+    json enabled_default = json::parse("{\"enabledMods\":[]}");
+    enabled.init_or_create("enabledMods", enabled_default);
 
     bool parse_error = false;
     for (auto& mod : fs::directory_iterator(mods_dir)) {
         auto info = fs::path(mod.path()) / "mod_info.json";
-        if (fs::exists(info)) {
-            std::ifstream info_file_stream(info);
-            std::stringstream buffer;
-            buffer << info_file_stream.rdbuf();
-            //std::string temp = buffer.str();
-            std::string temp = std::regex_replace(buffer.str(), std::regex("#.*\\\n"), "\n");
-            std::string info_string = std::regex_replace(temp, std::regex(",(\\s*[\\}\\]])"), "$1");
-            if (!json::accept(info_string, true)) wxMessageDialog(this, info_string).ShowModal();
-
+        mmConfig mod_info(info);
+        
+        if (mod_info.initialise()) {
             try {
-                json mod_info = json::parse(info_string);
                 wxVector<wxVariant> values;
                 values.push_back(std::find(enabled["enabledMods"].begin(), enabled["enabledMods"].end(), mod_info["id"]) != enabled["enabledMods"].end());
                 values.push_back(mod_info.value("name", "N/A"));
@@ -154,15 +152,19 @@ void mmBase::onAddModFolder(wxCommandEvent& event) {
 
                 getAllMods();
 
-                json info;
+                std::string mod_name;
                 int i = 0;
                 for (; i < m_ctrl->GetItemCount(); i++) {
-                    info = json::parse(std::ifstream(fs::path(config["install_dir"].get<std::string>()) / "mods" / mod_dir.filename() / "mod_info.json"));
+                    mmConfig info(fs::path(config["install_dir"].get<std::string>()) / "mods" / mod_dir.filename() / "mod_info.json");
+                    info.initialise();
                     auto item_id = std::get<0>(*(std::tuple<std::string, std::string, fs::path>*) m_ctrl->GetItemData(m_ctrl->RowToItem(i)));
-                    if (item_id == info["id"]) break;
+                    if (item_id == info["id"]) {
+                        mod_name = info["name"];
+                        break;
+                    }
                 }
 
-                wxMessageDialog check(this, "Activate '" + info["name"].get<std::string>() + "'?", wxMessageBoxCaptionStr, wxCENTRE | wxCANCEL | wxYES_NO);
+                wxMessageDialog check(this, "Activate '" + mod_name + "'?", wxMessageBoxCaptionStr, wxCENTRE | wxCANCEL | wxYES_NO);
                 if (check.ShowModal() == wxID_YES) {
                     m_ctrl->SetToggleValue(true, i, 0);
                     return;
