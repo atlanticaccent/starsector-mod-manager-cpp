@@ -1,6 +1,9 @@
 #ifndef MM_BASE
 #define MM_BASE
 
+#pragma comment(lib, "crypt32")
+#pragma comment(lib, "ws2_32.lib")
+
 #include <sstream>
 #include <regex>
 #include <memory>
@@ -15,6 +18,9 @@
 #include <wx/wfstream.h>
 #include <wx/archive.h>
 
+#include <archive.h>
+#include <archive_entry.h>
+
 #include "mmSettings.h"
 #include "mmConfig.h"
 
@@ -28,7 +34,8 @@ public:
 	mmBase();
 
 	bool getAllMods();
-	bool decompressArchiveTo(fs::path archive, fs::path targetDir);
+	bool decompressArchiveTo(const char* archive, fs::path targetDir);
+	void decompressProgressTracker();
 
 	void onSettings(wxCommandEvent& event);
 	void onListContextMenuDisplay(wxCommandEvent& event);

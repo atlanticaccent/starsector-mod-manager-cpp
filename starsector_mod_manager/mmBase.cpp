@@ -95,7 +95,7 @@ bool mmBase::getAllMods() {
                 );
 
                 m_ctrl->AppendItem(values, (wxUIntPtr) meta_data);
-            } catch (detail::type_error& e) {
+            } catch (detail::type_error&) {
                 parse_error = true;
             }
         }
@@ -109,71 +109,51 @@ bool mmBase::getAllMods() {
 
 // Credit to https://wiki.wxwidgets.org/WxZipInputStream and https://docs.wxwidgets.org/trunk/overview_archive.html#overview_archive_generic
 // for the basis of this function.
-bool mmBase::decompressArchiveTo(fs::path archive, fs::path targetDir) {
-    wxInputStream* in = new wxFFileInputStream(archive.string());
+bool mmBase::decompressArchiveTo(const char* archive, fs::path targetDir) {
+    struct archive* a;
+    struct archive_entry* entry;
+    int r;
 
-    if (in->IsOk()) {
-        // look for a filter handler, e.g. for '.gz'
-        const wxFilterClassFactory* fcf = wxFilterClassFactory::Find(archive.string(), wxSTREAM_FILEEXT);
-        // pop the extension, so if it was '.tar.gz' it is now just '.tar'
-        if (fcf) archive.replace_extension("");
-        // look for a archive handler, e.g. for '.zip' or '.tar'
-        const wxArchiveClassFactory* acf = wxArchiveClassFactory::Find(archive.string(), wxSTREAM_FILEEXT);
-        if (acf) {
-            fs::path mod_config_path;
-            wxArchiveInputStream* arc = acf->NewStream(in);
-            std::unique_ptr<wxArchiveEntry> entry;
-            // list the contents of the archive
-            while ((entry.reset(arc->GetNextEntry())), entry.get() != NULL) {
-                auto fname = targetDir / entry->GetName().ToStdString();
+    /* Select which attributes we want to restore. */
+    int flags = ARCHIVE_EXTRACT_TIME;
+    flags |= ARCHIVE_EXTRACT_PERM;
+    flags |= ARCHIVE_EXTRACT_ACL;
+    flags |= ARCHIVE_EXTRACT_FFLAGS;
 
-                if (fname.filename().string() == "mod_info.json") mod_config_path = fname;
+    a = archive_read_new();
+    archive_read_support_format_all(a);
+    archive_read_support_compression_all(a);
+    if ((r = archive_read_open_filename(a, archive, 10240))) return false;
 
-                if (entry->IsDir()) {
-                } else if (arc->CanRead()) {
-                    fs::create_directories(fname.parent_path());
+    for (;;) {
+        r = archive_read_next_header(a, &entry);
+        if (r == ARCHIVE_EOF) break;
+        if (r < ARCHIVE_OK || r < ARCHIVE_WARN) {
+            wxLogError(archive_error_string(a));
+        }
 
-                    wxFileOutputStream fos(fname.string());
+        const char* subpath = archive_entry_pathname(entry);
+        if (subpath == NULL) {
+            wxLogError(archive_error_string(a));
+            return false;
+        }
 
-                    if (fos.IsOk()) arc->Read(fos);
-                    else {
-                        wxLogError("Couldn't create the file '%s'.", fname.string());
-                        return false;
-                    }
-                } else {
-                    wxLogError("Couldn't read the zip entry '%s'.", entry->GetName());
-                    return false;
-                }
-            }
+        std::string newpath = (targetDir / subpath).string();
+        archive_entry_set_pathname(entry, newpath.c_str());
 
-            getAllMods();
-
-            mmConfig info(mod_config_path);
-            info.initialise();
-            std::string mod_name;
-            int i = 0;
-            for (; i < m_ctrl->GetItemCount(); i++) {
-                auto item_id = std::get<0>(*(std::tuple<std::string, std::string, fs::path>*) m_ctrl->GetItemData(m_ctrl->RowToItem(i)));
-                if (item_id == info["id"]) {
-                    mod_name = info["name"];
-                    break;
-                }
-            }
-
-            wxMessageDialog check(this, "Activate '" + mod_name + "'?", wxMessageBoxCaptionStr, wxCENTRE | wxCANCEL | wxYES_NO);
-            if (check.ShowModal() == wxID_YES) {
-                m_ctrl->SetToggleValue(true, i, 0);
-            }
-        } else {
-            wxLogError("Can't handle '%s'", archive.string());
+        r = archive_read_extract(a, entry, flags);
+        if (r < ARCHIVE_OK || r < ARCHIVE_WARN) {
+            wxLogError(archive_error_string(a));
             return false;
         }
     }
-
-    //getAllMods();
+    archive_read_close(a);
+    archive_read_free(a);
 
     return true;
 }
+
+
 
 BEGIN_EVENT_TABLE(mmBase, wxFrame)
     EVT_MENU(MM_SETTINGS_MENU, mmBase::onSettings)
@@ -254,12 +234,10 @@ void mmBase::onAddModArchive(wxCommandEvent& event) {
         wxArrayString paths;
         d.GetPaths(paths);
 
+        bool allSucceeded = true;
         for (auto path : paths) {
-
-
-            auto archive = fs::path(path.ToStdString());
-            decompressArchiveTo(
-                archive,
+            allSucceeded &= decompressArchiveTo(
+                path.ToUTF8().data(),
                 fs::path(config["install_dir"].get<std::string>()) / "mods"
             );
         }
